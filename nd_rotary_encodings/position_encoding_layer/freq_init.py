@@ -44,7 +44,7 @@ def init_2d_freqs_rope_mixed(
     theta: float = 10.0,
     rotate: bool = True,
     dtype: Optional[torch.dtype] = None,
-    device: Optional[torch.device] = None,
+    device: Optional[Union[str, torch.device]] = None,
 ) -> Tensor:
     """Initializes frequency parameters for 2D rotary position embeddings.
 
@@ -60,7 +60,7 @@ def init_2d_freqs_rope_mixed(
         rotate (bool): Whether to apply random rotation to the frequency vectors.
             When True, each head gets different random rotations. Default: True
         dtype (Optional[torch.dtype]): Data type for the output tensor. Default: None
-        device (Optional[torch.device]): Device for the output tensor. Default: None
+        device (Optional[str | torch.device]): Device for the output tensor. Default: None
 
     Returns:
         Tensor: Frequency parameter tensor of shape [2, n_heads, head_dim/2], containing
@@ -99,7 +99,7 @@ def init_nd_freqs(
     rotate: bool = True,
     max_rotation_angle: float = 2 * torch.pi,
     dtype: Optional[torch.dtype] = None,
-    device: Optional[torch.device] = None,
+    device: Optional[Union[str, torch.device]] = None,
 ) -> tuple[list[Tensor], Tensor]:
     """Initializes frequency parameters for N-dimensional rotary position embeddings.
 
@@ -134,7 +134,7 @@ def init_nd_freqs(
         max_rotation_angle (bool): If rotate is True, each head's random rotation is
             uniformly distributed between 0 and max_rotation_angle. Default: 2 * pi
         dtype (Optional[torch.dtype]): Data type for the output tensor. Default: None
-        device (Optional[torch.device]): Device for the output tensor. If None, the
+        device (Optional[str | torch.device]): Device for the output tensor. If None, the
             tensor will be created on freq_group_pattern's device. Default: None
 
     Returns:
