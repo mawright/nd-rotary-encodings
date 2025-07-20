@@ -13,6 +13,9 @@ dependencies = [
     "pytorch_sparse_utils @ git+https://github.com/mawright/pytorch-sparse-utils.git",
 ]
 
+[tool.setuptools]
+packages = ["nd_rotary_encodings"]
+
 [project.optional-dependencies]
 tests = [
     "pytest",
