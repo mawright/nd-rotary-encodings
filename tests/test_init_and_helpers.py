@@ -4,11 +4,12 @@ import pytest
 import torch
 
 from nd_rotary_encodings import (
-    prep_multilevel_positions,
     get_multilevel_freq_group_pattern,
+    prep_multilevel_positions,
 )
 from nd_rotary_encodings.position_encoding_layer.freq_init import (
     init_2d_freqs_rope_mixed,
+    init_2d_freqs_rope_mixed_orig,
     init_nd_freqs,
 )
 
@@ -16,6 +17,20 @@ from nd_rotary_encodings.position_encoding_layer.freq_init import (
 @pytest.fixture
 def dtype() -> torch.dtype:
     return torch.float32
+
+
+@pytest.mark.cuda_if_available
+class TestInit2DFreqsRopeMixedOrig:
+    def test_basics(self, device: str, dtype: torch.dtype):
+        head_dim = 64
+        num_heads = 8
+        freqs = init_2d_freqs_rope_mixed_orig(
+            head_dim, num_heads, dtype=dtype, device=device
+        )
+
+        assert freqs.shape == (num_heads, head_dim // 2, 2)
+        assert freqs.dtype == dtype
+        assert freqs.device.type == device
 
 
 @pytest.mark.cuda_if_available

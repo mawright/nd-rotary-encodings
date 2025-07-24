@@ -10,7 +10,7 @@ def init_2d_freqs_rope_mixed_orig(
     theta: float = 10.0,
     rotate: bool = True,
     dtype: Optional[torch.dtype] = None,
-    device: Optional[torch.device] = None,
+    device: Optional[Union[str, torch.device]] = None,
 ) -> Tensor:
     """Slightly modified version of the original RoPE-Mixed initialization function."""
     freqs_x = []

@@ -1,5 +1,10 @@
 # nd-rotary-encodings
 
+[![Tests](https://github.com/mawright/nd-rotary-encodings/actions/workflows/tests.yml/badge.svg)](https://github.com/mawright/nd-rotary-encodings/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/mawright/nd-rotary-encodings/branch/main/graph/badge.svg)](https://codecov.io/gh/mawright/nd-rotary-encodings)
+![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
+[![License](https://img.shields.io/github/license/mawright/nd-rotary-encodings)](https://github.com/mawright/nd-rotary-encodings/blob/main/LICENSE)
+
 N-Dimensional Rotary Positional Encodings (RoPE) in PyTorch
 
 ## Introduction
