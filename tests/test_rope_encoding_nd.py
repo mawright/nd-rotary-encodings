@@ -176,7 +176,7 @@ def rope_config_strategy(draw):
         position_min_key = draw(st.none())
         position_max_key = draw(st.none())
 
-    seed = draw(st.integers(min_value=0, max_value=1e8))
+    seed = draw(st.integers(min_value=0, max_value=int(1e8)))
 
     return {
         "config": {
@@ -218,9 +218,9 @@ def rope_input_tensors(
     position_dim: int,
     batch_shape_query: tuple[int, ...],
     use_position_grid_query: bool,
-    position_dtype_query: Optional[torch.dtype],
-    position_min_query: Optional[Union[int, float]],
-    position_max_query: Optional[Union[int, float]],
+    position_dtype_query: torch.dtype,
+    position_min_query: Union[int, float],
+    position_max_query: Union[int, float],
     include_key: bool,
     batch_shape_key: Optional[tuple[int, ...]],
     include_key_pos: bool,
@@ -238,7 +238,7 @@ def rope_input_tensors(
     if device.type == "cuda":
         rng_state = torch.cuda.get_rng_state(device)
     else:
-        rng_state = torch.get_rng_state(device)
+        rng_state = torch.get_rng_state()
     torch.manual_seed(seed)
 
     # Helper function for creating non-grid position tensor
@@ -253,10 +253,10 @@ def rope_input_tensors(
             device=device,
             dtype=dtype,
         )
-        if dtype == torch.float32:
+        if torch.is_floating_point(pos_tensor):
             pos_tensor.uniform_(pos_min, pos_max)
         else:
-            pos_tensor.random_(pos_min, pos_max + 1)
+            pos_tensor.random_(int(pos_min), int(pos_max) + 1)
         if force_unnormalized_positions and pos_tensor.numel() > 0:
             while pos_tensor.min() > 0.0 and pos_tensor.max() <= 1.0:
                 pos_tensor = pos_tensor + 1
@@ -281,6 +281,7 @@ def rope_input_tensors(
 
     # Create key embeddings and position tensor if needed
     if include_key:
+        assert batch_shape_key is not None
         key = torch.empty(batch_shape_key + (embed_dim,), device=device).uniform_(
             embedding_min_value,
             embedding_max_value,
@@ -292,6 +293,9 @@ def rope_input_tensors(
                 )
                 assert key_pos.size(-1) == position_dim
             else:
+                assert position_dtype_key is not None
+                assert position_min_key is not None
+                assert position_max_key is not None
                 key_pos = _random_positions(
                     batch_shape_key,
                     position_dtype_key,

@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 import torch
 from torch import Tensor, nn
@@ -49,6 +49,14 @@ class RoPEEncodingND(nn.Module):
             suitable for dimensions of greater spatial scale. Default: 10.0
         dtype (torch.dtype): Data type for the internal parameters. Default: torch.float
     """
+
+    if TYPE_CHECKING:
+        freq_group_pattern: Tensor
+        freq_pos_indices: Tensor
+        freq_group_indices: Tensor
+        freq_head_indices: Tensor
+        freq_enc_indices: Tensor
+        encoding_ranges: Tensor
 
     def __init__(
         self,
@@ -101,7 +109,6 @@ class RoPEEncodingND(nn.Module):
         precomputes the indices used to construct the full sparse RoPE frequency
         tensor.
         """
-
         effective_n_heads = self.n_heads if not self.share_heads else 1
 
         freqs, encoding_ranges = init_nd_freqs(
@@ -325,7 +332,7 @@ class RoPEEncodingND(nn.Module):
         embeddings_shape: Union[tuple[int, ...], Tensor],
         start_dim: int = 1,
         end_dim: int = -1,
-        device: Optional[torch.device] = None,
+        device: Optional[Union[str, torch.device]] = None,
         dtype: Optional[torch.dtype] = None,
     ) -> Tensor:
         """Generates a regularly-spaced grid of positions based on the input shape.
@@ -345,10 +352,10 @@ class RoPEEncodingND(nn.Module):
                 embeddings_shape, inclusive. Defaults to 1 (i.e., one batch dim).
             end_dim (int, optional): End index of the position dimensions in
                 embeddings_shape, exclusive. Defaults to -1 (i.e., one feature dim).
-            device(torch.device, optional): The device on which to create the tensor.
-                Defaults to None.
+            device(str | torch.device, optional): The device on which to create the
+                tensor. Defaults to None (i.e., default device).
             dtype(torch.device, optional): The dtype for the created tensor. Defaults
-                to None.
+                to None (i.e., default dtype).
 
         Returns:
             Tensor: Created position grid tensor, of shape

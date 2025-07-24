@@ -2,7 +2,7 @@ import torch
 from typing import Optional, Union
 from torch import Tensor
 
-from .utils import _validate_head_dim_even
+from .utils import validate_head_dim_even
 
 def init_2d_freqs_rope_mixed_orig(
     head_dim: int,
@@ -69,7 +69,7 @@ def init_2d_freqs_rope_mixed(
     Raises:
         ValueError: If head_dim is not divisible by 2.
     """
-    _validate_head_dim_even(head_dim)
+    validate_head_dim_even(head_dim)
 
     # Create frequency magnitudes that decay with head_dim index
     dim_t = torch.arange(0, head_dim, 2, dtype=dtype, device=device)
@@ -162,7 +162,7 @@ def init_nd_freqs(
                 standard 1D RoPE
             - Configurable max rotation angle
     """
-    _validate_head_dim_even(head_dim)
+    validate_head_dim_even(head_dim)
 
     if device is None:
         device = freq_group_pattern.device

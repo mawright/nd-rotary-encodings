@@ -2,7 +2,6 @@ from enum import Enum
 from typing import Union
 
 import torch
-from pytorch_sparse_utils.validation import validate_atleast_nd, validate_nd
 from torch import Tensor
 
 
@@ -15,9 +14,24 @@ class FreqGroupPattern(Enum):
         return self.value
 
 
-def _validate_head_dim_even(head_dim: int):
+def validate_head_dim_even(head_dim: int):
+    """Validates that a head dimension is divisible by 2 for RoPE"""
     if head_dim % 2 != 0:
         raise ValueError(f"head_dim must be even for RoPE, got {head_dim}")
+
+
+def validate_nd(tensor: Tensor, dims: int, name: str = "tensor") -> None:
+    """Validates that a tensor has exactly 'dims' dimensions."""
+    if tensor.ndim != dims:
+        raise ValueError(f"Expected {name} to be {dims}D, got ndim={tensor.ndim}")
+
+
+def validate_atleast_nd(tensor: Tensor, min_dims: int, name: str = "tensor") -> None:
+    """Validates that a tensor has at least min_dims dimensions."""
+    if tensor.ndim < min_dims:
+        raise ValueError(
+            f"Expected {name} to have at least {min_dims} dimensions, got {tensor.ndim}"
+        )
 
 
 @torch.jit.ignore  # pyright: ignore[reportArgumentType]

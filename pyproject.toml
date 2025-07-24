@@ -10,7 +10,6 @@ requires-python = ">= 3.9"
 dependencies = [
     "numpy",
     "torch",
-    "pytorch_sparse_utils @ git+https://github.com/mawright/pytorch-sparse-utils.git",
 ]
 
 [tool.setuptools]
@@ -20,6 +19,7 @@ packages = ["nd_rotary_encodings"]
 tests = [
     "pytest",
     "pytest-env",
+    "pytest-xdist",
     "hypothesis",
 ]
 docs = ["mkdocs", "mkdocstrings", "mkdocstrings-python"]
