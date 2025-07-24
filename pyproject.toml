@@ -19,6 +19,7 @@ packages = ["nd_rotary_encodings"]
 tests = [
     "pytest",
     "pytest-env",
+    "pytest-cov",
     "pytest-xdist",
     "hypothesis",
 ]
