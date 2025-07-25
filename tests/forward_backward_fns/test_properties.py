@@ -6,7 +6,7 @@ from torch import Tensor
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from nd_rotary_encodings.forward_backward_fns import (
+from nd_rotary_encodings.functional.forward_backward_fns import (
     calculate_rope,
     calculate_rope_backward,
     rotate_embeddings,

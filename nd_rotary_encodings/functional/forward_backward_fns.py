@@ -3,56 +3,14 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-
-@torch.jit.script
-def _validate_real(tensor: Tensor, name: str) -> None:
-    if tensor.is_complex():
-        raise ValueError(f"Expected {name} to be real, got dtype {tensor.dtype}")
-
-
-@torch.jit.script
-def _validate_at_least_nd(tensor: Tensor, name: str, min_dims: int) -> None:
-    if tensor.ndim < min_dims:
-        raise ValueError(
-            "Expected at least "
-            f"{min_dims} dimensions for {name}, got shape {tensor.shape}"
-        )
-
-
-@torch.jit.script
-def _validate_4d(tensor: Tensor, name: str) -> None:  # for rope frequences
-    if tensor.ndim != 4:
-        raise ValueError(f"Expected 4 dimensions for {name}, got shape {tensor.shape}")
-
-
-@torch.jit.script
-def _validate_same_ndims(
-    tensor_1: Tensor, name_1: str, tensor_2: Tensor, name_2: str
-) -> None:
-    if tensor_1.ndim != tensor_2.ndim:
-        raise ValueError(
-            "Expected " + name_1 + " and " + name_2 + " to have the same number of "
-            f"dims, got shapes {tensor_1.shape} and {tensor_2.shape}",
-        )
-
-
-@torch.jit.script
-def _validate_head_dim(embeddings: Tensor, rope_encoding: Tensor) -> None:
-    if embeddings.size(-1) != rope_encoding.size(-1) * 2:
-        raise ValueError(
-            "Expected rope_encoding to have last dimension equal to 1/2 embedding's "
-            f"head dim, got {rope_encoding.size(-1)} and {embeddings.size(-1)}"
-        )
-
-
-@torch.jit.script
-def _validate_position_dim(positions: Tensor, rope_freqs: Tensor) -> None:
-    if positions.size(-1) != rope_freqs.size(0):
-        raise ValueError(
-            "Expected first dimension of `rope_freqs` and last dimension of "
-            "positions to match, got "
-            f"{rope_freqs.size(0)} and {positions.size(-1)}"
-        )
+from .utils import (
+    validate_4d,
+    validate_at_least_nd,
+    validate_head_dim,
+    validate_position_dim,
+    validate_real,
+    validate_same_ndims,
+)
 
 
 @torch.jit.script
@@ -88,9 +46,9 @@ def calculate_rope(positions: Tensor, rope_freqs: Tensor) -> Tensor:
         Tensor: Computed positional encoding of shape
             [..., n_heads, head_dim/2]
     """
-    _validate_at_least_nd(positions, "positions", 2)
-    _validate_4d(rope_freqs, "rope_freqs")
-    _validate_position_dim(positions, rope_freqs)
+    validate_at_least_nd(positions, "positions", 2)
+    validate_4d(rope_freqs, "rope_freqs")
+    validate_position_dim(positions, rope_freqs)
 
     batch_dims = positions.shape[:-1]
     position_dim = positions.size(-1)
@@ -156,11 +114,11 @@ def rotate_embeddings(
             this function, and the output is downcasted back to `embeddings`'s original
             dtype before returning it.
     """
-    _validate_same_ndims(embeddings, "embeddings", rope_encoding, "rope_encoding")
-    _validate_at_least_nd(embeddings, "embeddings", 3)
-    _validate_real(embeddings, "embeddings")
-    _validate_real(rope_encoding, "rope_encoding")
-    _validate_head_dim(embeddings, rope_encoding)
+    validate_same_ndims(embeddings, "embeddings", rope_encoding, "rope_encoding")
+    validate_at_least_nd(embeddings, "embeddings", 3)
+    validate_real(embeddings, "embeddings")
+    validate_real(rope_encoding, "rope_encoding")
+    validate_head_dim(embeddings, rope_encoding)
 
     # Save original dtype
     embeddings_dtype = embeddings.dtype
@@ -240,17 +198,17 @@ def rotate_embeddings_backward(
             dtype of `embeddings` and `rope_encoding`, respectively, before returning
             them.
     """
-    _validate_same_ndims(embeddings, "embeddings", rope_encoding, "rope_encoding")
-    _validate_real(grad_embeddings_rotated, "grad_embeddings_rotated")
-    _validate_real(embeddings, "embeddings")
-    _validate_real(rope_encoding, "rope_encoding")
+    validate_same_ndims(embeddings, "embeddings", rope_encoding, "rope_encoding")
+    validate_real(grad_embeddings_rotated, "grad_embeddings_rotated")
+    validate_real(embeddings, "embeddings")
+    validate_real(rope_encoding, "rope_encoding")
 
     if grad_embeddings_rotated.shape != embeddings.shape:
         raise ValueError(
             "Expected grad_embeddings_rotated and embeddings to have the same shape, "
             f"got {grad_embeddings_rotated.shape} and {embeddings.shape}"
         )
-    _validate_head_dim(embeddings, rope_encoding)
+    validate_head_dim(embeddings, rope_encoding)
 
     # Check for no grads needed
     if not needs_grad_embeddings and not needs_grad_rope_encoding:
@@ -384,10 +342,10 @@ def calculate_rope_backward(
             - grad_rope_freqs: Gradient tensor for rope frequencies of same
               shape as input tensor rope_freqs, or None if not needed
     """
-    _validate_at_least_nd(positions, "positions", 2)
-    _validate_at_least_nd(grad_rope_encoding, "grad_rope_encoding", 3)
-    _validate_4d(rope_freqs, "rope_freqs")
-    _validate_position_dim(positions, rope_freqs)
+    validate_at_least_nd(positions, "positions", 2)
+    validate_at_least_nd(grad_rope_encoding, "grad_rope_encoding", 3)
+    validate_4d(rope_freqs, "rope_freqs")
+    validate_position_dim(positions, rope_freqs)
     if grad_rope_encoding.shape[:-2] != positions.shape[:-1]:
         raise ValueError(
             "Expected matching batch dims for grad_rope_encoding (first n-2 dims) "

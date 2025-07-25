@@ -4,10 +4,11 @@ from typing import Optional, Union, TYPE_CHECKING
 import torch
 from torch import Tensor, nn
 
-from ..forward_backward_fns import (
+from ..functional.forward_backward_fns import (
     calculate_rope,
     rotate_embeddings,
 )
+from ..functional.autograd import apply_rope_checkpointed
 from .freq_init import init_nd_freqs
 from .utils import can_broadcast_shapes
 
@@ -67,6 +68,7 @@ class RoPEEncodingND(nn.Module):
         freq_group_pattern: Optional[Tensor] = None,
         enforce_freq_groups_equal: bool = True,
         rope_base_theta: Union[Tensor, float, list[list[float]]] = 10.0,
+        use_checkpointing: bool = False,
         dtype=torch.float,
     ):
         """Initialize the module"""
@@ -86,6 +88,7 @@ class RoPEEncodingND(nn.Module):
         self.embed_dim = embed_dim
         self.n_heads = n_heads
         self.share_heads = share_heads
+        self.use_checkpointing = use_checkpointing
 
         if freq_group_pattern is None:
             # default frequency group pattern: one group with all position dimensions
@@ -298,30 +301,38 @@ class RoPEEncodingND(nn.Module):
             self.shape_check(key, key_pos)
         freq_tensor = self.grouped_rope_freqs_tensor(self.freqs)
 
-        query_rot_vec = self.calculate_rope(query_pos, freq_tensor)
-
         query_batch_dims = query.shape[:-1]
 
         # unstack query heads
         query = query.reshape(query_batch_dims + (self.n_heads, self.head_dim))
 
-        query_rotated = self.rotate_embeddings(query, query_rot_vec)
+        if self.use_checkpointing:
+            query_rotated = self.apply_rope_checkpointed(query, query_pos, freq_tensor)
+        else:
+            query_rot_vec = self.calculate_rope(query_pos, freq_tensor)
+            query_rotated = self.rotate_embeddings(query, query_rot_vec)
+
         # stack heads back
         query_rotated = query_rotated.view(query_batch_dims + (self.embed_dim,))
 
         if key is None:
             return query_rotated
 
-        if key_pos is not None:
-            key_rot_vec = self.calculate_rope(key_pos, freq_tensor)
-        else:
-            key_rot_vec = query_rot_vec
-
         key_batch_dims = key.shape[:-1]
         # unstack key heads
         key = key.reshape(key_batch_dims + (self.n_heads, self.head_dim))
 
-        key_rotated = self.rotate_embeddings(key, key_rot_vec)
+        if self.use_checkpointing:
+            if key_pos is None:
+                key_pos = query_pos
+            key_rotated = self.apply_rope_checkpointed(key, key_pos, freq_tensor)
+        else:
+            if key_pos is not None:
+                key_rot_vec = self.calculate_rope(key_pos, freq_tensor)
+            else:
+                key_rot_vec = query_rot_vec
+            key_rotated = self.rotate_embeddings(key, key_rot_vec)
+
         # stack heads back
         key_rotated = key_rotated.view(key_batch_dims + (self.embed_dim,))
 
@@ -473,6 +484,31 @@ class RoPEEncodingND(nn.Module):
         if dim_diff > 0:
             rope_encoding = rope_encoding.view((1,) * dim_diff + rope_encoding.shape)
         return rotate_embeddings(query_or_key, rope_encoding)
+
+    @staticmethod
+    def apply_rope_checkpointed(
+        query_or_key: Tensor, positions: Tensor, rope_freqs: Tensor
+    ) -> Tensor:
+        """Memory-optimized calculation and application of RoPE from components.
+
+        Uses an end-to-end function to calculate RoPE rotation vectors from
+        position coordinates and RoPE frequencies, then apply them to query or key
+        embeddings.
+        Under the hood, this uses a custom autograd Function and explicit backward
+        calculation to save memory, at the cost of recalculating the RoPE rotation
+        vectors during the backward pass.
+
+        Args:
+            query_or_key (Tensor): Query or key tensor of shape
+                [..., n_heads, head_dim].
+            positions (Tensor): Position tensor of shape [..., position_dim].
+            rope_freqs (Tensor): Frequency tensor for rotary encodings of shape
+                [position_dim, n_freq_groups, n_heads, head_dim/2].
+
+        Returns:
+            Tensor: Rotated query or key tensor of same shape as input query_or_key.
+        """
+        return apply_rope_checkpointed(query_or_key, positions, rope_freqs)
 
     def shape_check(self, query_or_key: Tensor, query_or_key_pos: Tensor):
         """Validates the shapes of query/key and their position tensors.

@@ -1,4 +1,4 @@
-from .forward_backward_fns import (
+from .functional import (
     calculate_rope,
     calculate_rope_backward,
     rotate_embeddings,

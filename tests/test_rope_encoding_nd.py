@@ -14,7 +14,7 @@ from nd_rotary_encodings import (
     RoPEEncodingND,
 )
 
-from nd_rotary_encodings.forward_backward_fns import (
+from nd_rotary_encodings.functional.forward_backward_fns import (
     calculate_rope,
     rotate_embeddings,
 )

@@ -3,7 +3,7 @@ import torch
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from nd_rotary_encodings.forward_backward_fns import (
+from nd_rotary_encodings.functional.forward_backward_fns import (
     rotate_embeddings,
     rotate_embeddings_backward,
 )
