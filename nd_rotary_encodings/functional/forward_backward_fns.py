@@ -230,7 +230,7 @@ def rotate_embeddings_backward(
         2,
     )
     grad_embeddings_rotated_complex = torch.view_as_complex(
-        grad_embeddings_rotated.reshape(to_complex_shape)
+        grad_embeddings_rotated.reshape(to_complex_shape).contiguous()
     )
 
     # Complex multiplication gradient

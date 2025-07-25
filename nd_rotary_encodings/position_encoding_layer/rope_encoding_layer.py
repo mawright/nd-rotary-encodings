@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING, Sequence
 
 import torch
 from torch import Tensor, nn
@@ -340,7 +340,7 @@ class RoPEEncodingND(nn.Module):
 
     @staticmethod
     def position_grid(
-        embeddings_shape: Union[tuple[int, ...], Tensor],
+        embeddings_shape: Union[Sequence[int], Tensor],
         start_dim: int = 1,
         end_dim: int = -1,
         device: Optional[Union[str, torch.device]] = None,
@@ -358,7 +358,7 @@ class RoPEEncodingND(nn.Module):
         ))
 
         Args:
-            embeddings_shape (Tensor): The full shape of the embeddings tensor.
+            embeddings_shape (Sequence[int] | Tensor): The full shape of the embeddings tensor.
             start_dim (int, optional): Start index of the position dimensions in
                 embeddings_shape, inclusive. Defaults to 1 (i.e., one batch dim).
             end_dim (int, optional): End index of the position dimensions in
@@ -508,7 +508,7 @@ class RoPEEncodingND(nn.Module):
         Returns:
             Tensor: Rotated query or key tensor of same shape as input query_or_key.
         """
-        return apply_rope_checkpointed(query_or_key, positions, rope_freqs)
+        return apply_rope_checkpointed(query_or_key, positions.to(rope_freqs), rope_freqs)
 
     def shape_check(self, query_or_key: Tensor, query_or_key_pos: Tensor):
         """Validates the shapes of query/key and their position tensors.

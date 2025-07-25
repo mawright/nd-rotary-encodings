@@ -1,6 +1,5 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
-import torch
 from torch import Tensor
 from torch.autograd import Function
 
@@ -49,7 +48,7 @@ class RotateEmbeddingsFunction(Function):
     def forward(ctx: Any, embeddings: Tensor, rope_encoding: Tensor) -> Tensor:
         ctx.save_for_backward(embeddings, rope_encoding)
         ctx.set_materialize_grads(False)
-        return rotate_embeddings(embeddings, rope_encoding, needs_autograd=False)
+        return rotate_embeddings(embeddings, rope_encoding, needs_autograd=True)
 
     @staticmethod
     def backward(
@@ -82,14 +81,14 @@ class ApplyRoPEFunction(Function):
     def forward(
         ctx: Any, embeddings: Tensor, positions: Tensor, rope_freqs: Tensor
     ) -> Tensor:
-        ctx.save_for_backard(embeddings, positions, rope_freqs)
+        ctx.save_for_backward(embeddings, positions, rope_freqs)
         ctx.set_materialize_grads(False)
 
         rope_encoding = calculate_rope(positions, rope_freqs)
         embeddings_rotated = rotate_embeddings(
             embeddings,
             rope_encoding,
-            needs_autograd=False,
+            needs_autograd=True,
         )
         return embeddings_rotated
 
@@ -114,7 +113,7 @@ class ApplyRoPEFunction(Function):
             rope_encoding,
             needs_grad_embeddings,
             needs_grad_rope_encoding=needs_grad_positions or needs_grad_rope_freqs,
-            needs_autograd=False,
+            needs_autograd=True,
         )
 
         if grad_rope_encoding is None:
@@ -139,6 +138,18 @@ def calculate_rope_checkpointed(positions: Tensor, rope_freqs: Tensor) -> Tensor
     kernel and stores only the ``positions`` and ``rope_freqs`` tensors required
     by the backward formula. This results in potentially large memory savings
     if the sequence length is large.
+
+    Args:
+        positions (Tensor): Position information for each embedding element of shape
+            [..., position_dim], where ... are arbitrary batch dimensions and
+            position_dim is the dimensionality of the position representation.
+        rope_freqs (Tensor): Frequency values for rotary encodings of shape
+            [position_dim, n_freq_groups, n_heads, head_dim/2], where n_freq_groups
+            and n_heads can be 1 for broadcasting.
+
+    Returns:
+        Tensor: Computed positional encoding of shape
+            [..., n_heads, head_dim/2]
     """
     out = CalculateRopeFunction.apply(positions, rope_freqs)
     return out  # pyright: ignore[reportReturnType]
@@ -147,11 +158,20 @@ def calculate_rope_checkpointed(positions: Tensor, rope_freqs: Tensor) -> Tensor
 def rotate_embeddings_checkpointed(embeddings: Tensor, rope_encoding: Tensor) -> Tensor:
     """Memory-efficient differentiable version of ``rotate_embeddings``.
 
-    The forward path calls the fast kernel with ``needs_autograd=False`` so it
-    can apply its in-place optimizations; gradients are supplied by a bespoke
-    backward kernel.  In practice this saves one extra copy of the
-    ``embeddings`` tensor compared to the naïve autograd graph, which again can
-    save significant memory if the sequence length is large.
+    Wrapper for a custom autograd Function that itself wraps `rotate_embeddings` for
+    forward pass and `rotate_embeddings_backward` for the backward pass. This setup
+    allows for custom checkpointing that avoids storage of intermediate tensors.
+
+    Args:
+        embeddings (Tensor): Embeddings tensor to be rotated (usually a query or
+            key tensor) of real dtype and shape [..., n_heads, head_dim]
+        rope_encoding (Tensor): Position encoding of real dtype and shape
+            [..., n_heads, head_dim/2] or
+            [..., 1,       head_dim/2] (broadcasted over heads)
+
+    Returns:
+        embeddings_rotated (Tensor): Embedding tensor after rotation, of shape
+            [..., n_heads, head_dim] and real dtype
     """
     out = RotateEmbeddingsFunction.apply(embeddings, rope_encoding)
     return out  # pyright: ignore[reportReturnType]
@@ -165,8 +185,8 @@ def apply_rope_checkpointed(
     Internally, this function computes the full RoPE encoding tensor and applies it
     to the embeddings, without storing it for backprop. Since this tensor is potentially
     very large for large sequence length and/or embedding dimension but is cheap to
-    calculate with just one broadcasted multiplication, this gradient checkpointing
-    logic can trade off significant memory savings for a small computation increase.
+    calculate, this gradient checkpointing logic can trade off potentially significant
+    memory savings for a small computation increase.
 
     Args:
         embeddings (Tensor): Embeddings tensor to be rotated (usually a query or
