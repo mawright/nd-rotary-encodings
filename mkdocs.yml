@@ -1,0 +1,18 @@
+site_name: nd-rotary-encodings
+theme:
+  name: readthedocs
+repo_url: https://github.com/mawright/nd-rotary-encodings
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+          paths: [nd_rotary_encodings]
+
+nav:
+  - Home: index.md
+  - RoPEEncodingND: layer.md
+  - Functional API: functional.md

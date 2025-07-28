@@ -19,13 +19,13 @@ This README is a work in progress.
 
 [Heo et al.](https://arxiv.org/abs/2403.13298) of NAVER AI Lab proposed an [extension of RoPE to 2D for Vision Transformers](https://github.com/naver-ai/rope-vit).
 Called RoPE-Mixed, the formulation extends traditional 1D RoPE by extending the RoPE rotation matrix $\mathbf{R} \in \mathbb{C}^{N \times (d_{head} / 2)}$
-$$
+```math
 \mathbf{R}_{[n, t]} = e^{i \theta_t n}
-$$
+```
 where $\mathbf{R_{[n,t]}}$ means the $[n, t]$ element of $\mathbf{R}$, $n \in \{1, \dots, N\}$ indexes the 1D spatial position, $t \in \{1, \dots, d_{head}/2\}$ indexes the feature dimension, $\theta_t$ is a learned or precomputed scalar frequency, and $i=\sqrt{-1}$; to a form where each entry of $\mathbf{R}$ has equal contributions from both spatial axes $x$ and $y$:
-$$
+```math
 \mathbf{R}_{[n, t]} = e^{i (\theta_t^x p_n^x + \theta_t^y p_n^y)}
-$$
+```
 where now $\theta_t^x$ and $\theta_t^y$ are separate per-axis scalar frequencies, and $p_n^x$ and $p_n^y$ are the 2D spatial coordinates.
 
 This repository is the result of research into further generalizing RoPE-Mixed to higher dimensions, with a particular focus on small object detection using DETRs on very large and sparse images.
@@ -37,6 +37,7 @@ Compared to the [official implementation](https://github.com/naver-ai/rope-vit) 
 - Improved Performance (benchmarks coming soon)
 - Generalization to ND spaces with N > 2
 - Support for arbitrary, non-grid positions (for representing, e.g., arbitrary object positions)
+- Gradient support for position tensors
 - Improved documentation
 - Comprehensive unit tests and property-based tests using [Hypothesis](hypothesis.readthedocs.io/)
 - Encoder-decoder attention (a.k.a. cross-attention) support

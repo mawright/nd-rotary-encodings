@@ -90,7 +90,7 @@ class RoPEEncodingND(nn.Module):
         inplace: bool = False,
         dtype=torch.float,
     ):
-        """Initialize the module"""
+        """Initialize the module."""
         super().__init__()
 
         if inplace and not forward_only:
@@ -400,9 +400,9 @@ class RoPEEncodingND(nn.Module):
                 embeddings_shape, inclusive. Defaults to 1 (i.e., one batch dim).
             end_dim (int, optional): End index of the position dimensions in
                 embeddings_shape, exclusive. Defaults to -1 (i.e., one feature dim).
-            device(str | torch.device, optional): The device on which to create the
+            device (Optional[Union[str, torch.device]]): The device on which to create the
                 tensor. Defaults to None (i.e., default device).
-            dtype(torch.device, optional): The dtype for the created tensor. Defaults
+            dtype (Optional[torch.device]): The dtype for the created tensor. Defaults
                 to None (i.e., default dtype).
 
         Returns:

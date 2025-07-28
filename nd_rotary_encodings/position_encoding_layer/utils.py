@@ -65,7 +65,7 @@ def prep_multilevel_positions(
     batch_indices: Tensor,
     level_indices: Tensor,
     level_spatial_shapes: Tensor,
-):
+) -> Tensor:
     """Standardizes positional coordinates across multiple resolution levels.
 
     Converts indices or positions from multiple resolution levels to a standardized
