@@ -13,8 +13,6 @@ Rotary Positional Encodings (RoPE) are the modern method to encode positional in
 While RoPE is most well-known for its use in 1D text and timeseries data, recent research has extended it to multidimensional data like 2D images and 3D volumes.
 This repository contains an implementation of N-dimensional RoPE that builds on and extends prior work with enhanced performance and new features.
 
-This README is a work in progress.
-
 ## Background
 
 [Heo et al.](https://arxiv.org/abs/2403.13298) of NAVER AI Lab proposed an [extension of RoPE to 2D for Vision Transformers](https://github.com/naver-ai/rope-vit).
@@ -34,11 +32,11 @@ This repository is the result of research into further generalizing RoPE-Mixed t
 
 Compared to the [official implementation](https://github.com/naver-ai/rope-vit) of RoPE-Mixed, our implementation offers:
 
-- Improved Performance (benchmarks coming soon)
+- Improved performance (see benchmarks below)
 - Generalization to ND spaces with N > 2
 - Support for arbitrary, non-grid positions (for representing, e.g., arbitrary object positions)
 - Gradient support for position tensors
-- [Improved documentation](https://mawright.github.io/nd-rotary-encodings/)
+- [Implementation documentation](https://mawright.github.io/nd-rotary-encodings/)
 - Comprehensive unit tests and property-based tests using [Hypothesis](hypothesis.readthedocs.io/)
 - Encoder-decoder attention (a.k.a. cross-attention) support
 - Experimental "grouped dimensions" construction for application to network modules beyond ViT backbones, such as detection transformers (DETRs)
@@ -55,7 +53,7 @@ The image sizes along the x axes of the benchmark results denote the actual toke
 
 <img src="images/memory_forward.png" width="500"/> <img src="images/walltime_forward.png" width="500"/>
 
-On the forward pass, our implementation achieves significantly better memory scaling than the reference implementation, bringing the memory scaling from an apparent high-degree polynomial scaling increase to a linear increase above the no-RoPE layer in training mode.
+On the forward pass, our implementation achieves significantly better memory scaling than the reference implementation, bringing the memory scaling from an apparent high-degree polynomial scaling increase to a constant multiplicative increase above the no-RoPE layer in training mode.
 In inference mode, additional optimizations such as in-place rotation of the embeddings allow us to bring the marginal memory cost to virtually no marginal increase.
 Importantly, our implementation allows token counts beyond a few thousand (e.g., 64x64) to be processed by a RoPE-enabled ViT layer or similar.
 
@@ -65,7 +63,7 @@ Forward-pass runtime is also significantly improved, with our implementation add
 
 <img src="images/memory_backward.png" width="500"/> <img src="images/walltime_backward.png" width="500"/>
 
-Similar to the forward pass, our implementation brings marginal memory consumption from apparent high-degree polynomial scaling to a linear increase above the No-RoPE case.
+Similar to the forward pass, our implementation brings marginal memory consumption from apparent high-degree polynomial scaling to a constant multiplicative increase above the No-RoPE case.
 
 The trends in walltime are also similar, with the reference implementation adding a marginally large walltime increase and ours adding a small factor that washes out at moderate to high resolutions.
 
@@ -88,7 +86,7 @@ pip install -e ".[tests]"
 
 ## API
 
-The high-level user-facing interface is the `nn.Module` `RoPEEncodingND`.
+The high-level user-facing interface is the `nn.Module` [`RoPEEncodingND`](https://mawright.github.io/nd-rotary-encodings/layer/#position_encoding_layer.rope_encoding_layer.RoPEEncodingND).
 This layer takes the query embedding tensor, the query position tensor, and optionally the key and key position tensor, and returns RoPE-encoded versions of the query and key tensors.
 
 A few usage examples:
@@ -134,6 +132,8 @@ rotated_query_2, rotated_key = rope(query, query_pos, key, key_pos)
 assert torch.equal(rotated_query, rotated_query_2)
 assert not torch.allclose(key, rotated_key)
 ```
+
+For more information on usage, see the [documentation page for `RoPEEncodingND`](https://mawright.github.io/nd-rotary-encodings/layer/).
 
 ## See Also
 
