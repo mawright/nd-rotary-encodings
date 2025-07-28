@@ -38,7 +38,7 @@ Compared to the [official implementation](https://github.com/naver-ai/rope-vit) 
 - Generalization to ND spaces with N > 2
 - Support for arbitrary, non-grid positions (for representing, e.g., arbitrary object positions)
 - Gradient support for position tensors
-- Improved documentation
+- [Improved documentation](https://mawright.github.io/nd-rotary-encodings/)
 - Comprehensive unit tests and property-based tests using [Hypothesis](hypothesis.readthedocs.io/)
 - Encoder-decoder attention (a.k.a. cross-attention) support
 - Experimental "grouped dimensions" construction for application to network modules beyond ViT backbones, such as detection transformers (DETRs)
@@ -46,7 +46,30 @@ Compared to the [official implementation](https://github.com/naver-ai/rope-vit) 
 
 ## Benchmarks
 
-WIP
+The benchmarks below show performance of a single Multi-head Attention (MHA) layer with no Rotary Positional Encodings (i.e., vanilla MHA), an MHA layer with the reference RoPE-Mixed implementation applied to the embeddings immediately before the query-key product, and an MHA layer with our nd-RoPE implementation in the same place.
+The test data are random square images of size NxN, with batch size 4, embedding dimension 256, and 8 heads. The benchmarks were run in float32 precision on a single A100 GPU. The benchmark may be reproduced by running the [benchmark notebook](notebooks/benchmark.ipynb).
+
+The image sizes along the x axes of the benchmark results denote the actual token counts of the processed embeddings without the typical downsampling/patchification used in most Vision Transformers.
+
+### Forward pass
+
+(images/memory_forward.png)
+(images/walltime_forward.png)
+
+On the forward pass, our implementation achieves significantly better memory scaling than the reference implementation, bringing the memory scaling from an apparent high-degree polynomial scaling increase to a linear increase above the no-RoPE layer in training mode.
+In inference mode, additional optimizations such as in-place rotation of the embeddings allow us to bring the marginal memory cost to virtually no marginal increase.
+Importantly, our implementation allows token counts beyond a few thousand (e.g., 64x64) to be processed by a RoPE-enabled ViT layer or similar.
+
+Forward-pass runtime is also significantly improved, with our implementation adding a small increase in walltime that becomes relatively insignificant past ~48x48.
+
+### Backward pass
+
+(images/memory_backward.png)
+(images/walltime_backward.png)
+
+Similar to the forward pass, our implementation brings marginal memory consumption from apparent high-degree polynomial scaling to a linear increase above the No-RoPE case.
+
+The trends in walltime are also similar, with the reference implementation adding a marginally large walltime increase and ours adding a small factor that washes out at moderate to high resolutions.
 
 ## Installation
 
