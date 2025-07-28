@@ -53,8 +53,7 @@ The image sizes along the x axes of the benchmark results denote the actual toke
 
 ### Forward pass
 
-![Forward-pass memory usage](images/memory_forward.png)
-![Forward-pass walltime](images/walltime_forward.png)
+<img src="images/memory_forward.png" width="500"/> <img src="images/walltime_forward.png" width="500"/>
 
 On the forward pass, our implementation achieves significantly better memory scaling than the reference implementation, bringing the memory scaling from an apparent high-degree polynomial scaling increase to a linear increase above the no-RoPE layer in training mode.
 In inference mode, additional optimizations such as in-place rotation of the embeddings allow us to bring the marginal memory cost to virtually no marginal increase.
@@ -64,8 +63,7 @@ Forward-pass runtime is also significantly improved, with our implementation add
 
 ### Backward pass
 
-![Backward-pass memory usage](images/memory_backward.png)
-![Backward-pass walltime](images/walltime_backward.png)
+<img src="images/memory_backward.png" width="500"/> <img src="images/walltime_backward.png" width="500"/>
 
 Similar to the forward pass, our implementation brings marginal memory consumption from apparent high-degree polynomial scaling to a linear increase above the No-RoPE case.
 
