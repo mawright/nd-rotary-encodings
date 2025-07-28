@@ -12,6 +12,10 @@ plugins:
             show_source: true
           paths: [nd_rotary_encodings]
 
+markdown_extensions:
+  - toc:
+      permalink: true
+
 nav:
   - Home: index.md
   - RoPEEncodingND: layer.md
