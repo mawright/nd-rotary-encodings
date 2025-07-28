@@ -1,6 +1,7 @@
 import pytest
 
 import torch
+from torch import Tensor
 
 from nd_rotary_encodings.functional.autograd import (
     calculate_rope_checkpointed,
@@ -230,6 +231,7 @@ class TestApplyRopeCheckpointed:
         out = apply_rope_checkpointed(embeddings, positions, rope_freqs)
 
         assert out is not None
+        assert isinstance(out, Tensor)
         assert out.shape == embeddings.shape
         assert out.device == embeddings.device
         assert not torch.equal(embeddings, out)
@@ -259,6 +261,7 @@ class TestApplyRopeCheckpointed:
         )
 
         out = apply_rope_checkpointed(embeddings, positions, rope_freqs)
+        assert isinstance(out, Tensor)
 
         loss = out.sum()
         loss.backward()
@@ -307,6 +310,56 @@ class TestApplyRopeCheckpointed:
             apply_rope_checkpointed, (embeddings, positions, rope_freqs)
         )
 
+    def test_gradcheck_with_key(self, device):
+        batch_dim = 2
+        seq_length = 5
+        n_heads = 4
+        head_dim = 8
+
+        position_dim = 3
+        n_freq_groups = 2
+
+        query_embeddings = torch.randn(
+            batch_dim,
+            seq_length,
+            n_heads,
+            head_dim,
+            device=device,
+            requires_grad=True,
+            dtype=torch.double,
+        )
+        positions = torch.randn(
+            batch_dim,
+            seq_length,
+            position_dim,
+            device=device,
+            requires_grad=True,
+            dtype=torch.double,
+        )
+        rope_freqs = torch.randn(
+            position_dim,
+            n_freq_groups,
+            n_heads,
+            head_dim // 2,
+            device=device,
+            requires_grad=True,
+            dtype=torch.double,
+        )
+        key_embeddings = torch.randn(
+            batch_dim,
+            seq_length,
+            n_heads,
+            head_dim,
+            device=device,
+            requires_grad=True,
+            dtype=torch.double,
+        )
+
+        assert torch.autograd.gradcheck(
+            apply_rope_checkpointed,
+            (query_embeddings, positions, rope_freqs, key_embeddings),
+        )
+
 
 @pytest.mark.cuda_if_available
 class TestApplyRopeForwardOnly:
@@ -335,12 +388,14 @@ class TestApplyRopeForwardOnly:
 
         # Test with inplace=False
         out = apply_rope_forward_only(embeddings, positions, rope_freqs, inplace=False)
+        assert isinstance(out, Tensor)
 
         assert not torch.allclose(embeddings, out)
         assert torch.equal(embeddings, embeddings_copy)
 
         # Test with inplace=True
         out_2 = apply_rope_forward_only(embeddings, positions, rope_freqs, inplace=True)
+        assert isinstance(out_2, Tensor)
 
         assert torch.allclose(out, out_2)
         assert torch.equal(embeddings, out_2)

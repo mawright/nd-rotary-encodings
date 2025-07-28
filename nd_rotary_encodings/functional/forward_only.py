@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 import torch
 from torch import Tensor
 
@@ -37,8 +39,12 @@ def rotate_embeddings_forward_only(
 
 @torch.no_grad()
 def apply_rope_forward_only(
-    embeddings: Tensor, positions: Tensor, rope_freqs: Tensor, inplace: bool = False
-) -> Tensor:
+    embeddings: Tensor,
+    positions: Tensor,
+    rope_freqs: Tensor,
+    inplace: bool = False,
+    self_attn_key_embeddings: Optional[Tensor] = None,
+) -> Union[Tensor, tuple[Tensor, Tensor]]:
     """End-to-end rotary positional encoding (RoPE) in a single autograd node.
 
     This calls `calculate_rope` and `rotate_embeddings` with additional optimizations
@@ -62,4 +68,14 @@ def apply_rope_forward_only(
             [..., n_heads, head_dim] and same dtype as `embeddings`.
     """
     rope_encoding = calculate_rope(positions, rope_freqs)
-    return rotate_embeddings_forward_only(embeddings, rope_encoding, inplace=inplace)
+    embeddings_rotated = rotate_embeddings_forward_only(
+        embeddings, rope_encoding, inplace=inplace
+    )
+
+    if self_attn_key_embeddings is None:
+        return embeddings_rotated
+
+    key_embeddings_rotated = rotate_embeddings_forward_only(
+        self_attn_key_embeddings, rope_encoding, inplace=inplace
+    )
+    return embeddings_rotated, key_embeddings_rotated
