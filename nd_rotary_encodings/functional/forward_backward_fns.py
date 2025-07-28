@@ -346,24 +346,22 @@ def calculate_rope_backward(
     validate_at_least_nd(grad_rope_encoding, "grad_rope_encoding", 3)
     validate_4d(rope_freqs, "rope_freqs")
     validate_position_dim(positions, rope_freqs)
-    if grad_rope_encoding.shape[:-2] != positions.shape[:-1]:
-        raise ValueError(
-            "Expected matching batch dims for grad_rope_encoding (first n-2 dims) "
-            "and positions (first n-1 dims), got "
-            f"shapes {grad_rope_encoding.shape} and {positions.shape}"
-        )
+
+    positions_in_shape = positions.shape
+    rope_freqs_in_shape = rope_freqs.shape
+
+    positions = positions.expand(grad_rope_encoding.shape[:-2] + (positions.size(-1),))
+    n_heads = grad_rope_encoding.size(-2)
+    rope_freqs = rope_freqs.expand(-1, -1, n_heads, -1)
 
     batch_dims = positions.shape[:-1]
     position_dim = positions.size(-1)
-    _, n_freq_groups, n_heads, half_head_dim = rope_freqs.shape
+    _, n_freq_groups, _, half_head_dim = rope_freqs.shape
 
     # Check for no grads needed
     if not needs_grad_positions and not needs_grad_rope_freqs:
         # Early return
         return None, None
-
-    # potentially different than n_heads if rope_freqs was broadcasted over heads
-    expanded_n_heads = grad_rope_encoding.size(-2)
 
     # Backward of sum: distribute gradient across n_freq_groups
     grad_mm_result = grad_rope_encoding.unsqueeze(-3).expand(
@@ -371,34 +369,27 @@ def calculate_rope_backward(
     )
 
     # Reshape to match the mm result
-    grad_mm_result = grad_mm_result.reshape(
-        -1, n_freq_groups * expanded_n_heads * half_head_dim
-    )
-
-    # expand rope_freqs to account for broadcasting
-    expanded_rope_freqs = rope_freqs.expand(-1, -1, expanded_n_heads, -1)
+    grad_mm_result = grad_mm_result.reshape(-1, n_freq_groups * n_heads * half_head_dim)
 
     # Flatten inputs as in forward pass
     positions_flat = positions.reshape(-1, position_dim)
-    expanded_rope_freqs_flat = expanded_rope_freqs.reshape(position_dim, -1)
+    rope_freqs_flat = rope_freqs.reshape(position_dim, -1)
 
     # Gradient for matrix multiplication: If C = A @ B
     # Then grad_A = grad_C @ B^T and grad_B = A^T @ grad_C
     if needs_grad_positions:
-        grad_positions_flat = torch.mm(grad_mm_result, expanded_rope_freqs_flat.t())
+        grad_positions_flat = torch.mm(grad_mm_result, rope_freqs_flat.t())
         grad_positions = grad_positions_flat.view(batch_dims + (position_dim,))
+        grad_positions = grad_positions.sum_to_size(positions_in_shape)
     else:
         grad_positions = None
 
     if needs_grad_rope_freqs:
         grad_rope_freqs_flat = torch.mm(positions_flat.t(), grad_mm_result)
         grad_rope_freqs = grad_rope_freqs_flat.view(
-            position_dim, n_freq_groups, expanded_n_heads, half_head_dim
+            position_dim, n_freq_groups, n_heads, half_head_dim
         )
-
-        # handle broadcasting case
-        if n_heads == 1 and expanded_n_heads > 1:
-            grad_rope_freqs = grad_rope_freqs.sum(2, keepdim=True)
+        grad_rope_freqs = grad_rope_freqs.sum_to_size(rope_freqs_in_shape)
     else:
         grad_rope_freqs = None
 

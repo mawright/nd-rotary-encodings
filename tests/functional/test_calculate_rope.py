@@ -502,7 +502,9 @@ class TestCalculateRopeBackward:
             *batch_dims, n_heads, head_dim // 2, device=device
         )  # [2, 4, 6, n_heads, head_dim/2]
         positions = torch.randn(*batch_dims, position_dim, device=device)
-        rope_freqs = torch.randn(position_dim, n_freq_groups, n_heads, head_dim // 2)
+        rope_freqs = torch.randn(
+            position_dim, n_freq_groups, n_heads, head_dim // 2, device=device
+        )
 
         # Test 1D positions (should be at least 2D)
         with pytest.raises(
@@ -554,19 +556,6 @@ class TestCalculateRopeBackward:
                 torch.randn(
                     position_dim - 1, n_freq_groups, n_heads, head_dim, device=device
                 ),
-                True,
-                True,
-            )
-
-        # Test mismatched batch dims between grad_rope_encoding and positions
-        with pytest.raises(
-            (ValueError, torch.jit.Error),  # pyright: ignore[reportArgumentType]
-            match="Expected matching batch dims",
-        ):
-            calculate_rope_backward(
-                grad_rope_encoding,
-                positions[0],
-                rope_freqs,
                 True,
                 True,
             )
