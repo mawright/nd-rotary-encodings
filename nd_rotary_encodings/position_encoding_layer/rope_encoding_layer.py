@@ -338,6 +338,7 @@ class RoPEEncodingND(nn.Module):
         if key is not None:
             key = key.reshape(key.shape[:-1] + (self.n_heads, self.head_dim))
 
+        key_rotated = None
         # select proper path
         if self.forward_only or self.use_checkpointing:
             # use end-to-end function

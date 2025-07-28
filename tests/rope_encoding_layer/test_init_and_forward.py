@@ -269,10 +269,12 @@ class TestRoPEEncodingNDForward:
             query_rotated, key_rotated = output
         else:
             query_rotated = output
+            key_rotated = None
 
         # Test that rotation happened
         assert not torch.allclose(query, query_rotated)
         if key is not None:
+            assert key_rotated is not None
             assert not torch.allclose(key, key_rotated)
 
     def test_forward_query_and_key(
