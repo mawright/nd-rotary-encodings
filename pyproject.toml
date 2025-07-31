@@ -12,8 +12,11 @@ dependencies = [
     "torch",
 ]
 
-[tool.setuptools]
-packages = ["nd_rotary_encodings"]
+[tool.setuptools.packages.find]
+include = [
+    "nd_rotary_encodings",
+    "nd_rotary_encodings.*",
+]
 
 [project.optional-dependencies]
 tests = [
