@@ -142,6 +142,6 @@ For more information on usage, see the [documentation page for `RoPEEncodingND`]
 
 ## Future Plans
 
-- Integration of [LieRE](https://github.com/Stanford-AIMI/LieRE) and/or other more-advanced schemes for RoPE rotation matrices
+- Integration of [LieRE](https://github.com/Stanford-AIMI/LieRE), [STRING](https://arxiv.org/abs/2502.02562), and/or other more-advanced schemes for RoPE rotation matrices
 - Additional benchmarks
 - Expanded usage examples for the more advanced and experimental features
