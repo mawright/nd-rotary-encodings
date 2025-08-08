@@ -393,7 +393,7 @@ class RoPEEncodingND(nn.Module):
         grid tensor is torch.stack(torch.meshgrid(
             *[torch.arange(size) for size in embeddings_shape[start_dim:end_dim]],
             indexing="ij"
-        ))
+        ), dim=-1)
 
         Args:
             embeddings_shape (Sequence[int] | Tensor): The full shape of the embeddings tensor.
