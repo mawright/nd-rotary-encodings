@@ -129,7 +129,9 @@ def rotate_embeddings(
 
     # Convert to complex and apply rotation
     emb_complex_shape = embeddings.shape[:-1] + (embeddings.size(-1) // 2, 2)
-    embeddings_complex = torch.view_as_complex(embeddings.reshape(emb_complex_shape))
+    embeddings_complex = torch.view_as_complex(
+        embeddings.reshape(emb_complex_shape).contiguous()
+    )
     rope_encoding_complex = torch.polar(torch.ones_like(rope_encoding), rope_encoding)
 
     # multiply and convert back to real
@@ -264,7 +266,7 @@ def rotate_embeddings_backward(
         # Recompute complex version of embeddings tensor
         emb_complex_shape = embeddings.shape[:-1] + (embeddings.size(-1) // 2, 2)
         embeddings_complex = torch.view_as_complex(
-            embeddings.reshape(emb_complex_shape)
+            embeddings.reshape(emb_complex_shape).contiguous()
         )
 
         # Compute gradient with respect to rope_encoding_complex
